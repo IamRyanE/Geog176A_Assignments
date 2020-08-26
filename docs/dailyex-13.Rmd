@@ -1,0 +1,136 @@
+---
+title: "Geography 176A"
+author: "[Ryan Erickson](https://github.com/IamRyanE)"
+subtitle: 'Daily Exercise 13: st_simplify'
+output:
+  html_document:
+    theme: journal
+---
+# Installing rmapshaper
+```{r}
+library(rmapshaper)
+library(USAboundaries)
+library(sf)
+library(tidyverse)
+```
+
+# Creating CONUS state borders
+
+```{r}
+conus_borders = USAboundaries::us_states() %>% 
+  filter(!stusps %in% c("AK", "HI", "PR")) %>% 
+  st_union() %>% 
+  st_transform(5070)
+```
+
+# Playing with st_simplify
+
+```{r}
+stconus100 = conus_borders %>% 
+  st_simplify(dTolerance = 100)
+
+stconus1000 = conus_borders %>% 
+  st_simplify(dTolerance = 1000)
+
+stconus5500 = conus_borders %>% 
+  st_simplify(dTolerance = 5500)
+
+stconus10000 = conus_borders %>% 
+  st_simplify(dTolerance = 10000)
+
+stconus55000 = conus_borders %>% 
+  st_simplify(dTolerance = 55000)
+
+stconus100000 = conus_borders %>% 
+  st_simplify(dTolerance = 100000)
+```
+
+What do they look like (compared to original)?
+(I didn't want to include the actual plots because there are too many, just wanted to show the code, see end of assignment for plots)
+
+```{r, message=FALSE, fig.show='hide'}
+plot(conus_borders)
+plot(stconus100)
+plot(stconus1000)
+plot(stconus5500)
+plot(stconus10000)
+plot(stconus55000)
+plot(stconus100000)
+mapview::npts(conus_borders)
+mapview::npts(stconus100)
+mapview::npts(stconus1000)
+mapview::npts(stconus5500)
+mapview::npts(stconus10000)
+mapview::npts(stconus55000)
+mapview::npts(stconus100000)
+```
+
+Looking at the displayed graphes, if we we're to use the st_simplify function to make it easier to process points, a dTolerance of 10,000 seems to retain the best shape with 328 points. While a  dTolerance of 55,000 and 100,000 contains only 76 and 35 points respectively, the map distortions are too great to be used for meaningful analysis. 
+
+# Playing with ms_simplify
+
+```{r}
+msconus5 = conus_borders %>% #This is the default value (keeping 5% of pts)
+  ms_simplify(keep = 0.05)
+
+msconus10 = conus_borders %>% 
+  ms_simplify(keep = 0.1)
+
+msconus25 = conus_borders %>% 
+  ms_simplify(keep = 0.25)
+
+msconus50 = conus_borders %>% 
+  ms_simplify(keep = 0.5)
+
+msconus67 = conus_borders %>% 
+  ms_simplify(keep = 0.67)
+
+msconus97 = conus_borders %>% 
+  ms_simplify(keep = 0.97)
+```
+
+What do they look like (compared to original)?
+(Again, I didn't want to include the actual plots because there are too many, just wanted to show the code, see end of assignment for plots)
+
+```{r, message = FALSE, fig.show='hide'}
+plot(conus_borders)
+plot(msconus5)
+plot(msconus10)
+plot(msconus25)
+plot(msconus50)
+plot(msconus67)
+plot(msconus97)
+mapview::npts(conus_borders)
+mapview::npts(msconus5)
+mapview::npts(msconus10)
+mapview::npts(msconus25)
+mapview::npts(msconus50)
+mapview::npts(msconus67)
+mapview::npts(msconus97)
+```
+
+Here we can see that keeping 50% of the points keeps the most generic shape, and it did not change much from the original. The number of points also was reduced by half. However, upon further inspection, we can see that keeping 10% of the points (resulting in 322 points) still retains a good shape and can still be used for analysis. This is close to the number of points that created an acceptable graph using st_simplify (328 points). There is almost no difference when retaining 97% of the points.
+
+# Create a map for the raw, and each simplified geometry. Report the number of points in each
+
+```{r}
+ggplot() + 
+  geom_sf(data = conus_borders) + 
+  labs(title = "Full CONUS Map",
+       caption = paste("Number of points used = ", mapview::npts(conus_borders)))
+```
+
+```{r}
+ggplot() + 
+  geom_sf(data = stconus10000) + 
+  labs(title = "st_simplify() CONUS Map: dTolerance = 10,000",
+       caption = paste("Number of points used = ", mapview::npts(stconus10000)))
+```
+
+```{r}
+ggplot() + 
+  geom_sf(data = msconus10) + 
+  labs(title = "ms_simplify() CONUS Map: keep = .1",
+       caption = paste("Number of points used = ", mapview::npts(msconus10)))
+```
+
